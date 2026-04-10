@@ -1,10 +1,11 @@
 #Stepmotor, have motor pins be on GPIO 17,18,19,20.
 #Ultrasonic Sensor, have trig pin be 23 and ech 24.
-import RPi.GPIO as GPIO
 from RpiMotorLib.RpiMotorLib import BYJMotor
+import RPi.GPIO as GPIO
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+from gpiozero import DistanceSensor
 
 # --- Setup ---
 GPIO.setmode(GPIO.BCM)
@@ -12,21 +13,13 @@ motor_pins = [17, 18, 19, 20]
 trig_pin = 23
 echo_pin = 24
 
-GPIO.setup(motor_pins, GPIO.OUT)
-GPIO.setup(trig_pin, GPIO.OUT)
-GPIO.setup(echo_pin, GPIO.IN)
+ultrasonic = DistanceSensor(trigger=trig_pin, echo=echo_pin)
 
 motor = BYJMotor("stepper", "28BYJ48")
 
 # Radar Data
 angles = []
 distances = []
-
-def get_distance():
-    GPIO.output(trig_pin, True)
-    time.sleep(0.00001)
-    GPIO.output(trig_pin, False)
-    #utilize built in ultrasonic sensor methods
 
 def live_radar():
     global angles, distances
@@ -35,7 +28,7 @@ def live_radar():
     ax = fig.add_subplot(111, projection='polar')
     
     total_steps = 256 #180 degree radar
-    step_delay = 0.01 
+    step_delay = 0.003
     
     try:
         while True:
@@ -43,7 +36,7 @@ def live_radar():
                 motor.motor_run(motor_pins, step_delay, 1, False, False, "half", 0)
                 
                 current_angle = (s / 512) * 2 * np.pi
-                dist = get_distance()
+                dist = ultrasonic.distance
                 
                 angles.append(current_angle)
                 distances.append(dist)
@@ -63,6 +56,7 @@ def live_radar():
         GPIO.cleanup()
         plt.ioff()
         plt.show()
+        ultrasonic.close()
 
 if __name__ == "__main__":
     live_radar()
