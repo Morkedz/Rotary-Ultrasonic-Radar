@@ -8,8 +8,6 @@ import time
 from gpiozero import DistanceSensor
 
 # --- Setup ---
-GPIO.setmode(GPIO.BCM)
-motor_pins = [17, 18, 19, 20]
 trig_pin = 23
 echo_pin = 24
 
@@ -24,31 +22,35 @@ distances = []
 def live_radar():
     global angles, distances
     plt.ion()
-    fig = plt.figure(figsize=(8, 8))
-    ax = fig.add_subplot(111, projection='polar')
+    ax = plt.subplot(111, projection='polar')
     
     total_steps = 256 #180 degree radar
-    step_delay = 0.003
+    step_delay = 0.005
     
     try:
         while True:
             for s in range(total_steps):
-                motor.motor_run(motor_pins, step_delay, 1, False, False, "half", 0)
+                motor.motor_run([17, 18, 19, 20], step_delay, 1, False, False, "half", 0)
                 
                 current_angle = (s / 512) * 2 * np.pi
-                dist = ultrasonic.distance
+                dist = ultrasonic.distance * 100
                 
                 angles.append(current_angle)
                 distances.append(dist)
                 
                 if s % 5 == 0:
+                    print(dist)
                     ax.clear()
                     ax.set_thetamin(0)
                     ax.set_thetamax(180)
-                    ax.scatter(angles, distances, c=distances, cmap='viridis', s=10)
+                    ax.plot(angles, distances)
                     plt.pause(0.001)
-            angles, distances = [], []
-            motor.motor_run(motor_pins, step_delay, total_steps, True, False, "half", 0.05)
+            for s in range(total_steps):
+                motor.motor_run([17, 18, 19, 20], step_delay, total_steps, True, False, "half", 0.05)
+                current_angle = ((512-s)/512)*2*np.pi
+                dist = ultrasonic.distance * 100
+                angles.append(current_angle)
+                distances.append(dist)
 
     except KeyboardInterrupt:
         print("Radar Stopped.")
